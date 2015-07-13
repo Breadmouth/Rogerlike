@@ -20,8 +20,6 @@ public class s_Dungeon : MonoBehaviour {
 	private List<GameObject> m_walls;
 	private GameObject m_player;
 
-	private float m_playerActionTimer = 0.5f;
-
 	private int m_maxWallInLine = 1;
 	private int m_maxEnemyInLine = 1;
 
@@ -62,7 +60,6 @@ public class s_Dungeon : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 		pushDownDelay -= Time.deltaTime;
-		m_playerActionTimer -= Time.deltaTime;
 
 		if (!m_playerInput)
 		{
@@ -70,58 +67,101 @@ public class s_Dungeon : MonoBehaviour {
 			{
 				m_playerInput = !m_playerInput;
 				pushDownDungeon = true;
+				pushDownDelay = 0.2f;
 			}
 			//wait for the player to make an action
 
 			if ( Input.GetKeyDown(KeyCode.UpArrow) && m_player.transform.position.y < 11)
 			{
 				//check if the position above the player is clear using the array
-				m_player.transform.position = new Vector3(m_player.transform.position.x,
-				                                          m_player.transform.position.y + 1,
-				                                          m_player.transform.position.z);
+				if (m_dungeon[(int)m_player.transform.position.x, (int)m_player.transform.position.y + 1] == TileTypes.EMPTY)
+				{
+					m_dungeon[(int)m_player.transform.position.x, (int)m_player.transform.position.y] = TileTypes.EMPTY;
+					m_player.transform.position = new Vector3(m_player.transform.position.x,
+					                                          m_player.transform.position.y + 1,
+					                                          m_player.transform.position.z);
+					m_dungeon[(int)m_player.transform.position.x, (int)m_player.transform.position.y] = TileTypes.PLAYER;
+				}
 			}
 			if ( Input.GetKeyDown(KeyCode.DownArrow) && m_player.transform.position.y > 0)
 			{
-				m_player.transform.position = new Vector3(m_player.transform.position.x,
-				                                          m_player.transform.position.y - 1,
-				                                          m_player.transform.position.z);
+				if (m_dungeon[(int)m_player.transform.position.x, (int)m_player.transform.position.y - 1] == TileTypes.EMPTY)
+				{
+					m_dungeon[(int)m_player.transform.position.x, (int)m_player.transform.position.y] = TileTypes.EMPTY;
+					m_player.transform.position = new Vector3(m_player.transform.position.x,
+					                                          m_player.transform.position.y - 1,
+					                                          m_player.transform.position.z);
+					m_dungeon[(int)m_player.transform.position.x, (int)m_player.transform.position.y] = TileTypes.PLAYER;
+				}
 			}
 			if ( Input.GetKeyDown(KeyCode.LeftArrow) && m_player.transform.position.x > 1)
 			{
-				m_player.transform.position = new Vector3(m_player.transform.position.x - 1,
-				                                          m_player.transform.position.y,
-				                                          m_player.transform.position.z);
+				if (m_dungeon[(int)m_player.transform.position.x - 1, (int)m_player.transform.position.y] == TileTypes.EMPTY)
+				{
+					m_dungeon[(int)m_player.transform.position.x, (int)m_player.transform.position.y] = TileTypes.EMPTY;
+					m_player.transform.position = new Vector3(m_player.transform.position.x - 1,
+					                                          m_player.transform.position.y,
+					                                          m_player.transform.position.z);
+					m_dungeon[(int)m_player.transform.position.x, (int)m_player.transform.position.y] = TileTypes.PLAYER;
+				}
 			}
 			if ( Input.GetKeyDown(KeyCode.RightArrow) && m_player.transform.position.x < 7)
 			{
-				m_player.transform.position = new Vector3(m_player.transform.position.x + 1,
-				                                          m_player.transform.position.y,
-				                                          m_player.transform.position.z);
+				if (m_dungeon[(int)m_player.transform.position.x + 1, (int)m_player.transform.position.y] == TileTypes.EMPTY)
+				{
+					m_dungeon[(int)m_player.transform.position.x, (int)m_player.transform.position.y] = TileTypes.EMPTY;
+					m_player.transform.position = new Vector3(m_player.transform.position.x + 1,
+					                                          m_player.transform.position.y,
+					                                          m_player.transform.position.z);
+					m_dungeon[(int)m_player.transform.position.x, (int)m_player.transform.position.y] = TileTypes.PLAYER;
+				}
 			}
 		}
 		else
 		{
-			if (currentPushAmmount < m_dungeonHeight)
+			if (currentPushAmmount < m_dungeonHeight - 1)
 			{
 				if (pushDownDelay < .0f)
 				{
 					//push everything down
 					for (int i = 0; i < m_walls.Count; ++i)
 					{
-						m_walls[i].transform.position = new Vector3(m_walls[i].transform.position.x,
-						                                            m_walls[i].transform.position.y - 1,
-						                                            m_walls[i].transform.position.z);
+						if (m_walls[i] != null)
+						{
+							m_dungeon[(int)m_walls[i].transform.position.x, (int)m_walls[i].transform.position.y] = TileTypes.EMPTY;
+							m_walls[i].transform.position = new Vector3(m_walls[i].transform.position.x,
+							                                            m_walls[i].transform.position.y - 1,
+						 	                                           m_walls[i].transform.position.z);
+							if (m_walls[i].transform.position.y >= 0)
+							{
+								m_dungeon[(int)m_walls[i].transform.position.x,  (int)m_walls[i].transform.position.y] = TileTypes.WALL;
+							}
+							else
+							{
+								Destroy(m_walls[i]);
+							}
+						}
 					}
 					for (int i = 0; i < m_enemies.Count; ++i)
 					{
+						m_dungeon[(int)m_enemies[i].transform.position.x, (int)m_enemies[i].transform.position.y] = TileTypes.EMPTY;
 						m_enemies[i].transform.position = new Vector3(m_enemies[i].transform.position.x,
 						                                              m_enemies[i].transform.position.y - 1,
 						                                              m_enemies[i].transform.position.z);
+						if (m_enemies[i].transform.position.y >= 0)
+						{
+							m_dungeon[(int)m_walls[i].transform.position.x,  (int)m_walls[i].transform.position.y] = TileTypes.SPIDER;
+						}
+						else
+						{
+							Destroy (m_enemies[i]);
+						}
 					}
+					m_dungeon[(int)m_player.transform.position.x, (int)m_player.transform.position.y] = TileTypes.EMPTY;
 					m_player.transform.position = new Vector3(m_player.transform.position.x,
 					                                          m_player.transform.position.y - 1,
 					                                          m_player.transform.position.z);
-					//delete entities with position.y < 0
+					m_dungeon[(int)m_player.transform.position.x, (int)m_player.transform.position.y] = TileTypes.PLAYER;
 						
 					//make decisions for all other entities
 
