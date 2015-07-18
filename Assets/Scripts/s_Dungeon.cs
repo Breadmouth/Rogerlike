@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -11,11 +12,15 @@ public class s_Dungeon : MonoBehaviour {
 	public bool pushDownDungeon = false;
 	public int currentPushAmmount = 0;
 	public float pushDownDelay = 0.15f;
+	public int m_moveCountIncrement = 15;
 
 	public GameObject m_wallPrefab;
 	public GameObject m_playerPrefab;
 	public GameObject m_enemyPrefab;
 	public GameObject m_daggerPrefab;
+
+	public Canvas m_canvas;
+	public GameObject m_moveCountText;
 
 	private List<GameObject> m_enemies;
 	private List<GameObject> m_walls;
@@ -24,6 +29,8 @@ public class s_Dungeon : MonoBehaviour {
 
 	private int m_maxWallInLine = 1;
 	private int m_maxEnemyInLine = 1;
+
+	private int m_moveCount = 20;
 
 	private const int m_dungeonHeight = 12;
 	private const int m_dungeonWidth = 9;
@@ -59,6 +66,9 @@ public class s_Dungeon : MonoBehaviour {
 
 		m_dungeon[ (m_dungeonWidth - 1) / 2, 3] = TileTypes.PLAYER;
 		m_player = (GameObject)Instantiate (m_playerPrefab, new Vector3((m_dungeonWidth - 1) / 2, 3, -1),transform.rotation);
+
+		Text uiText = m_moveCountText.GetComponent<Text>();
+		uiText.text = m_moveCount.ToString();
 	}
 	
 	// Update is called once per frame
@@ -135,6 +145,13 @@ public class s_Dungeon : MonoBehaviour {
 					m_dungeon[(int)m_player.transform.position.x, (int)m_player.transform.position.y + 1] = TileTypes.DAGGER;
 					m_playerInput = true;
 				}
+
+				if (m_playerInput)
+				{
+					m_moveCount--;
+					Text uiText = m_moveCountText.GetComponent<Text>();
+					uiText.text = m_moveCount.ToString();
+				}
 			}
 			else
 			{
@@ -145,25 +162,24 @@ public class s_Dungeon : MonoBehaviour {
 				{
 					if (m_daggers[i] != null)
 					{
-						if (m_dungeon[(int)m_daggers[i].transform.position.x, (int)m_daggers[i].transform.position.y + 1] == TileTypes.EMPTY)
+						if (m_daggers[i].transform.position.y + 1 <= 11 && m_dungeon[(int)m_daggers[i].transform.position.x, (int)m_daggers[i].transform.position.y + 1] == TileTypes.EMPTY)
 						{
 							m_dungeon[(int)m_daggers[i].transform.position.x, (int)m_daggers[i].transform.position.y] = TileTypes.EMPTY;
 							m_daggers[i].transform.position = new Vector3(m_daggers[i].transform.position.x,
 						 	                                         	  m_daggers[i].transform.position.y + 1,
 						  	                                  	          m_daggers[i].transform.position.z);
+							if (m_daggers[i].transform.position.y <= 11)
+							{
+								m_dungeon[(int)m_daggers[i].transform.position.x,  (int)m_daggers[i].transform.position.y] = TileTypes.DAGGER;//issue code
+							}
+							else
+							{
+								Destroy(m_daggers[i]);
+							}
 						}
 						else
 						{
 							m_dungeon[(int)m_daggers[i].transform.position.x, (int)m_daggers[i].transform.position.y] = TileTypes.EMPTY;
-							Destroy(m_daggers[i]);
-						}
-
-						if (m_daggers[i].transform.position.y <= 11)
-						{
-							m_dungeon[(int)m_daggers[i].transform.position.x,  (int)m_daggers[i].transform.position.y] = TileTypes.DAGGER;//issue code
-						}
-						else
-						{
 							Destroy(m_daggers[i]);
 						}
 					}
@@ -174,84 +190,95 @@ public class s_Dungeon : MonoBehaviour {
 		}
 		else
 		{
-			if (currentPushAmmount < m_dungeonHeight - 1)
+			LoadNewArea();
+		}
+	}
+
+	void LoadNewArea()
+	{
+		if (currentPushAmmount < m_dungeonHeight - 1)
+		{
+			if (pushDownDelay < .0f)
 			{
-				if (pushDownDelay < .0f)
+				//push everything down
+				for (int i = 0; i < m_walls.Count; ++i)
 				{
-					//push everything down
-					for (int i = 0; i < m_walls.Count; ++i)
+					if (m_walls[i] != null)
 					{
-						if (m_walls[i] != null)
+						m_dungeon[(int)m_walls[i].transform.position.x, (int)m_walls[i].transform.position.y] = TileTypes.EMPTY;
+						m_walls[i].transform.position = new Vector3(m_walls[i].transform.position.x,
+						                                            m_walls[i].transform.position.y - 1,
+						                                            m_walls[i].transform.position.z);
+						if (m_walls[i].transform.position.y >= 0)
 						{
-							m_dungeon[(int)m_walls[i].transform.position.x, (int)m_walls[i].transform.position.y] = TileTypes.EMPTY;
-							m_walls[i].transform.position = new Vector3(m_walls[i].transform.position.x,
-							                                            m_walls[i].transform.position.y - 1,
-						 	                                           m_walls[i].transform.position.z);
-							if (m_walls[i].transform.position.y >= 0)
-							{
-								m_dungeon[(int)m_walls[i].transform.position.x,  (int)m_walls[i].transform.position.y] = TileTypes.WALL;
-							}
-							else
-							{
-								Destroy(m_walls[i]);
-							}
-						}
-					}
-					for (int i = 0; i < m_enemies.Count; ++i)
-					{
-						m_dungeon[(int)m_enemies[i].transform.position.x, (int)m_enemies[i].transform.position.y] = TileTypes.EMPTY;
-						m_enemies[i].transform.position = new Vector3(m_enemies[i].transform.position.x,
-						                                              m_enemies[i].transform.position.y - 1,
-						                                              m_enemies[i].transform.position.z);
-						if (m_enemies[i].transform.position.y >= 0)
-						{
-							m_dungeon[(int)m_walls[i].transform.position.x,  (int)m_walls[i].transform.position.y] = TileTypes.SPIDER;
+							m_dungeon[(int)m_walls[i].transform.position.x,  (int)m_walls[i].transform.position.y] = TileTypes.WALL;
 						}
 						else
 						{
-							Destroy (m_enemies[i]);
+							Destroy(m_walls[i]);
 						}
 					}
-					m_dungeon[(int)m_player.transform.position.x, (int)m_player.transform.position.y] = TileTypes.EMPTY;
-					m_player.transform.position = new Vector3(m_player.transform.position.x,
-					                                          m_player.transform.position.y - 1,
-					                                          m_player.transform.position.z);
-					m_dungeon[(int)m_player.transform.position.x, (int)m_player.transform.position.y] = TileTypes.PLAYER;
-						
-					//add new walls
-					int currentWallCount = 0;
-					float wallChance = 0.1f;
-					for (int i = 0; i < 9; ++i)
+				}
+				for (int i = 0; i < m_enemies.Count; ++i)
+				{
+					m_dungeon[(int)m_enemies[i].transform.position.x, (int)m_enemies[i].transform.position.y] = TileTypes.EMPTY;
+					m_enemies[i].transform.position = new Vector3(m_enemies[i].transform.position.x,
+					                                              m_enemies[i].transform.position.y - 1,
+					                                              m_enemies[i].transform.position.z);
+					if (m_enemies[i].transform.position.y >= 0)
 					{
-						if (i == 0 || i == 8)
+						m_dungeon[(int)m_walls[i].transform.position.x,  (int)m_walls[i].transform.position.y] = TileTypes.SPIDER;
+					}
+					else
+					{
+						Destroy (m_enemies[i]);
+					}
+				}
+				m_dungeon[(int)m_player.transform.position.x, (int)m_player.transform.position.y] = TileTypes.EMPTY;
+				m_player.transform.position = new Vector3(m_player.transform.position.x,
+				                                          m_player.transform.position.y - 1,
+				                                          m_player.transform.position.z);
+				m_dungeon[(int)m_player.transform.position.x, (int)m_player.transform.position.y] = TileTypes.PLAYER;
+				
+				//add new walls
+				int currentWallCount = 0;
+				float wallChance = 0.1f;
+				for (int i = 0; i < 9; ++i)
+				{
+					if (i == 0 || i == 8)
+					{
+						m_dungeon[i, 11] = TileTypes.WALL;
+						GameObject newWall = (GameObject)Instantiate (m_wallPrefab, new Vector3(i, 11, -1),transform.rotation);
+						m_walls.Add(newWall);
+					}
+					else if (currentWallCount < m_maxWallInLine)
+					{
+						if (Random.value < wallChance)
 						{
 							m_dungeon[i, 11] = TileTypes.WALL;
 							GameObject newWall = (GameObject)Instantiate (m_wallPrefab, new Vector3(i, 11, -1),transform.rotation);
 							m_walls.Add(newWall);
-						}
-						else if (currentWallCount < m_maxWallInLine)
-						{
-							if (Random.value < wallChance)
-							{
-								m_dungeon[i, 11] = TileTypes.WALL;
-								GameObject newWall = (GameObject)Instantiate (m_wallPrefab, new Vector3(i, 11, -1),transform.rotation);
-								m_walls.Add(newWall);
-	
-								currentWallCount++;
-							}
+							
+							currentWallCount++;
 						}
 					}
-					//add new enemies
-
-					currentPushAmmount++;
-					pushDownDelay = 0.15f;
 				}
+				//add new enemies
+				
+				currentPushAmmount++;
+				pushDownDelay = 0.15f;
 			}
-			else
-			{
-				m_loadNewArea = false;
-				currentPushAmmount = 0;
-			}
+		}
+		else
+		{
+			m_loadNewArea = false;
+			currentPushAmmount = 0;
+			m_moveCount += m_moveCountIncrement;
+			
+			Text uiText = m_moveCountText.GetComponent<Text>();
+			uiText.text = m_moveCount.ToString();
 		}
 	}
 }
+
+
